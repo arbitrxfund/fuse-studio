@@ -1,9 +1,13 @@
 const router = require('express').Router()
 const { agenda } = require('@services/agenda')
 const auth = require('@routes/auth')
+const { isBlocked } = require('@utils/smsProvider/common')
 
 router.post('/', auth.required, async (req, res) => {
-  const { appName, identifier } = req.user
+  const { phoneNumber, appName, identifier } = req.user
+  if (isBlocked(phoneNumber)) {
+    return res.status(400).json({ error: `${phoneNumber} is blocked` })
+  }
   try {
     const job = await agenda.now('relay', { ...req.body, identifier, appName })
     return res.json({ job: job.attrs })
@@ -13,7 +17,10 @@ router.post('/', auth.required, async (req, res) => {
 })
 
 router.post('/multi', auth.required, async (req, res) => {
-  const { appName, identifier } = req.user
+  const { phoneNumber, appName, identifier } = req.user
+  if (isBlocked(phoneNumber)) {
+    return res.status(400).json({ error: `${phoneNumber} is blocked` })
+  }
   try {
     const { items } = req.body
     if (!items) {
